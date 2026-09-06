@@ -40,13 +40,21 @@ ACCESS_TOKEN_SECRET=replace-with-a-long-random-secret
 
 ## Running the Server
 
-Start the app:
+Start the auth server:
 
 ```bash
-node index.js
+pnpm auth
 ```
 
-The server listens on port `3001`.
+The auth server listens on port `5500`.
+
+In another terminal, start the books API server:
+
+```bash
+pnpm dev
+```
+
+The books API server listens on port `3001`.
 
 ## API Usage
 
@@ -56,7 +64,7 @@ Use the demo credentials to request an access token:
 
 ```bash
 ACCESS_TOKEN=$(curl -s --json '{"username":"thangphan","password":"abc"}' \
-  http://localhost:3001/login | jq -r ".accessToken")
+  http://localhost:5500/login | jq -r ".accessToken")
 ```
 
 Print the token:
@@ -101,21 +109,21 @@ Successful responses return the protected book list:
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Express as Express Server
+    participant AuthServer as Auth Server
     participant Auth as authenticate()
     participant JWT as jsonwebtoken
-    participant Books as /books API
+    participant Books as Books API Server
 
-    Client->>Express: POST /login with username and password
-    Express->>Auth: Validate credentials
-    Auth-->>Express: Valid or invalid
+    Client->>AuthServer: POST /login with username and password
+    AuthServer->>Auth: Validate credentials
+    Auth-->>AuthServer: Valid or invalid
 
     alt Invalid credentials
-        Express-->>Client: 401 Unauthorized
+        AuthServer-->>Client: 401 Unauthorized
     else Valid credentials
-        Express->>JWT: Sign JWT with ACCESS_TOKEN_SECRET
-        JWT-->>Express: accessToken
-        Express-->>Client: 200 OK with accessToken
+        AuthServer->>JWT: Sign JWT with ACCESS_TOKEN_SECRET
+        JWT-->>AuthServer: accessToken
+        AuthServer-->>Client: 200 OK with accessToken
     end
 
     Client->>Books: GET /books with Authorization: Bearer token
@@ -135,6 +143,7 @@ sequenceDiagram
 ```text
 .
 ├── .env.sample
+├── auth-server.js
 ├── index.js
 ├── package.json
 ├── pnpm-lock.yaml
