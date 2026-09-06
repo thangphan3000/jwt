@@ -26,7 +26,13 @@ Install dependencies:
 pnpm install
 ```
 
-Create a `.env` file in the project root:
+Create a local `.env` file from the sample:
+
+```bash
+cp .env.sample .env
+```
+
+Update `.env` with your own JWT secret:
 
 ```bash
 ACCESS_TOKEN_SECRET=replace-with-a-long-random-secret
@@ -128,6 +134,7 @@ sequenceDiagram
 
 ```text
 .
+├── .env.sample
 ├── index.js
 ├── package.json
 ├── pnpm-lock.yaml
