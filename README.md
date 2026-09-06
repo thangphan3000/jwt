@@ -110,30 +110,28 @@ Successful responses return the protected book list:
 sequenceDiagram
     participant Client
     participant AuthServer as Auth Server
-    participant Auth as authenticate()
-    participant JWT as jsonwebtoken
     participant Books as Books API Server
 
     Client->>AuthServer: POST /login with username and password
-    AuthServer->>Auth: Validate credentials
-    Auth-->>AuthServer: Valid or invalid
 
     alt Invalid credentials
+        Note right of AuthServer: Compare username and password inline
         AuthServer-->>Client: 401 Unauthorized
     else Valid credentials
-        AuthServer->>JWT: Sign JWT with ACCESS_TOKEN_SECRET
-        JWT-->>AuthServer: accessToken
+        Note right of AuthServer: Sign access token with ACCESS_TOKEN_SECRET
         AuthServer-->>Client: 200 OK with accessToken
     end
 
     Client->>Books: GET /books with Authorization: Bearer token
-    Books->>JWT: Verify token with ACCESS_TOKEN_SECRET
 
-    alt Token invalid or expired
-        JWT-->>Books: Verification error
+    alt Missing token
+        Note right of Books: Read token from Authorization header
+        Books-->>Client: 401 Unauthorized
+    else Token invalid or expired
+        Note right of Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 403 Forbidden
     else Token valid
-        JWT-->>Books: Decoded token data
+        Note right of Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 200 OK with book list
     end
 ```
