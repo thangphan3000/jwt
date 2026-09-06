@@ -129,7 +129,7 @@ sequenceDiagram
         Books-->>Client: 401 Unauthorized
     else Token invalid or expired
         Note right of Books: Verify token with ACCESS_TOKEN_SECRET
-        Books-->>Client: 403 Forbidden
+        Books-->>Client: 401 Unauthorized
     else Token valid
         Note right of Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 200 OK with book list

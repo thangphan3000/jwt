@@ -35,9 +35,9 @@ const authorize = (req, res, next) => {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err) => {
     if (err) {
-      return res.status(403).json({
-        error: "jwt_expired",
-        message: err
+      return res.status(401).json({
+        error: "invalid_access_token",
+        message: err.message
       })
     }
 
