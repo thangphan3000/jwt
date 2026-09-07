@@ -32,10 +32,11 @@ Create a local `.env` file from the sample:
 cp .env.sample .env
 ```
 
-Update `.env` with your own JWT secret:
+Update `.env` with your own JWT secrets:
 
 ```bash
 ACCESS_TOKEN_SECRET=replace-with-a-long-random-secret
+REFRESH_TOKEN_SECRET=replace-with-another-long-random-secret
 ```
 
 ## Running the Server
@@ -60,17 +61,21 @@ The books API server listens on port `3001`.
 
 ### Log In
 
-Use the demo credentials to request an access token:
+Use the demo credentials to request an access token and refresh token:
 
 ```bash
-ACCESS_TOKEN=$(curl -s --json '{"username":"thangphan","password":"abc"}' \
-  http://localhost:5500/login | jq -r ".accessToken")
+LOGIN_RESPONSE=$(curl -s --json '{"username":"thangphan","password":"abc"}' \
+  http://localhost:5500/login)
+
+ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r ".accessToken")
+REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r ".refreshToken")
 ```
 
-Print the token:
+Print the tokens:
 
 ```bash
 echo "$ACCESS_TOKEN"
+echo "$REFRESH_TOKEN"
 ```
 
 ### Access Protected Books Endpoint
@@ -104,6 +109,29 @@ Successful responses return the protected book list:
 }
 ```
 
+### Refresh Access Token
+
+After the access token expires, use the refresh token to request a new access token and rotated refresh token:
+
+```bash
+REFRESH_RESPONSE=$(curl -s --json "{\"refreshToken\":\"$REFRESH_TOKEN\"}" \
+  http://localhost:5500/token)
+
+ACCESS_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r ".accessToken")
+REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r ".refreshToken")
+```
+
+The previous refresh token is revoked after rotation. Use the latest refresh token for the next refresh request.
+
+### Log Out
+
+Revoke the active refresh token:
+
+```bash
+curl -s --json "{\"refreshToken\":\"$REFRESH_TOKEN\"}" \
+  http://localhost:5500/logout | jq
+```
+
 ## Request Flow
 
 ```mermaid
@@ -118,8 +146,8 @@ sequenceDiagram
         Note right of AuthServer: Compare username and password inline
         AuthServer-->>Client: 401 Unauthorized
     else Valid credentials
-        Note right of AuthServer: Sign access token with ACCESS_TOKEN_SECRET
-        AuthServer-->>Client: 200 OK with accessToken
+        Note right of AuthServer: Sign access token and refresh token
+        AuthServer-->>Client: 200 OK with accessToken and refreshToken
     end
 
     Client->>Books: GET /books with Authorization: Bearer token
@@ -134,6 +162,19 @@ sequenceDiagram
         Note right of Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 200 OK with book list
     end
+
+    Client->>AuthServer: POST /token with refreshToken
+
+    alt Refresh token missing, revoked, invalid, or expired
+        AuthServer-->>Client: 401 Unauthorized
+    else Refresh token valid
+        Note right of AuthServer: Revoke old refresh token and issue a new token pair
+        AuthServer-->>Client: 200 OK with accessToken and refreshToken
+    end
+
+    Client->>AuthServer: POST /logout with refreshToken
+    Note right of AuthServer: Delete refresh token from in-memory store
+    AuthServer-->>Client: 200 OK
 ```
 
 ## Project Structure
@@ -152,4 +193,6 @@ sequenceDiagram
 
 - Demo login credentials are `thangphan` / `abc`.
 - Access tokens expire after `30` seconds.
+- Refresh tokens expire after `1` day and are stored in memory, so they are cleared when the auth server restarts.
+- Refresh tokens rotate on every successful `POST /token` request; the previous refresh token stops working immediately.
 - This project is for learning JWT request flow only. Do not use hard-coded credentials or short secrets in production.
