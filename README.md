@@ -143,23 +143,23 @@ sequenceDiagram
     Client->>AuthServer: POST /login with username and password
 
     alt Invalid credentials
-        Note right of AuthServer: Compare username and password inline
+        AuthServer->>AuthServer: Compare username and password inline
         AuthServer-->>Client: 401 Unauthorized
     else Valid credentials
-        Note right of AuthServer: Sign access token and refresh token
+        AuthServer->>AuthServer: Sign access token and refresh token
         AuthServer-->>Client: 200 OK with accessToken and refreshToken
     end
 
     Client->>Books: GET /books with Authorization: Bearer token
 
     alt Missing token
-        Note right of Books: Read token from Authorization header
+        Books->>Books: Read token from Authorization header
         Books-->>Client: 401 Unauthorized
     else Token invalid or expired
-        Note right of Books: Verify token with ACCESS_TOKEN_SECRET
+        Books->>Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 401 Unauthorized
     else Token valid
-        Note right of Books: Verify token with ACCESS_TOKEN_SECRET
+        Books->>Books: Verify token with ACCESS_TOKEN_SECRET
         Books-->>Client: 200 OK with book list
     end
 
@@ -168,12 +168,12 @@ sequenceDiagram
     alt Refresh token missing, revoked, invalid, or expired
         AuthServer-->>Client: 401 Unauthorized
     else Refresh token valid
-        Note right of AuthServer: Revoke old refresh token and issue a new token pair
+        AuthServer->>AuthServer: Revoke old refresh token and issue a new token pair
         AuthServer-->>Client: 200 OK with accessToken and refreshToken
     end
 
     Client->>AuthServer: POST /logout with refreshToken
-    Note right of AuthServer: Delete refresh token from in-memory store
+    AuthServer->>AuthServer: Delete refresh token from in-memory store
     AuthServer-->>Client: 200 OK
 ```
 
